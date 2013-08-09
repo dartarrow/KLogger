@@ -1,12 +1,11 @@
 <?php
-
 /**
  * Finally, a light, permissions-checking logging class.
  *
  * Originally written for use with wpSearch
  *
  * Usage:
- * $log = new KLogger('/var/log/', KLogger::INFO);
+ * $log = new KLogger('/var/log/');
  * $log->logInfo('Returned a million search results'); //Prints to the log file
  * $log->logFatal('Oh dear.'); //Prints to the log file
  * $log->logDebug('x = 5'); //Prints nothing due to current severity threshhold
@@ -17,6 +16,12 @@
  * @version 0.2.1
  */
 
+/**
+ * Version 0.2.1 changes:
+ *  - Made the logging severity threshold 'global'. ie: has to be set here!
+ *    - removed the severity from the constructor
+ *  - changed formats for the printed logs to suit my preference
+ */
 /**
  * Class documentation
  */
@@ -34,17 +39,16 @@ class KLogger
     const NOTICE = 5;  // Notice: normal but significant condition
     const INFO   = 6;  // Informational: informational messages
     const DEBUG  = 7;  // Debug: debug messages
-
-    //custom logging level
-    /**
-     * Log nothing at all
-     */
     const OFF    = 8;
     /**
-     * Alias for CRIT
-     * @deprecated
+     * Default severity of log messages, if not specified
+     * @var integer
      */
-    const FATAL  = 2;
+
+    # --------------- !!!THIS IS HOW YOU TURN IT OFF!!! ------------------------------ 
+    private $_severityThreshold = self::DEBUG;
+    // private $_severityThreshold = self::OFF; // Turn it off
+    # -------------------------------------------------------------------------------- 
 
     /**
      * Internal status codes
@@ -76,11 +80,6 @@ class KLogger
      */
     private $_logFilePath       = null;
     /**
-     * Current minimum logging threshold
-     * @var integer
-     */
-    private $_severityThreshold = self::INFO;
-    /**
      * This holds the file handle for this instance's log file
      * @var resource
      */
@@ -98,15 +97,11 @@ class KLogger
     );
 
     /**
-     * Default severity of log messages, if not specified
-     * @var integer
-     */
-    private static $_defaultSeverity    = self::DEBUG;
-    /**
-     * Valid PHP date() format string for log timestamps
+     * Valid PHP date() format string for timestamps
+     * Date is irrelevant because it's already in the filename - Alvin
      * @var string
      */
-    private static $_dateFormat         = 'Y-m-d G:i:s';
+    private static $_dateFormat         = 'G:i:s';
     /**
      * Octal notation for default permissions of the log file
      * @var integer
@@ -153,16 +148,11 @@ class KLogger
      * Class constructor
      *
      * @param string  $logDirectory File path to the logging directory
-     * @param integer $severity     One of the pre-defined severity constants
      * @return void
      */
-    public function __construct($logDirectory, $severity)
+    public function __construct($logDirectory)
     {
         $logDirectory = rtrim($logDirectory, '\\/');
-
-        if ($severity === self::OFF) {
-            return;
-        }
 
         $this->_logFilePath = $logDirectory
             . DIRECTORY_SEPARATOR
@@ -170,7 +160,6 @@ class KLogger
             . date('Y-m-d')
             . '.txt';
 
-        $this->_severityThreshold = $severity;
         if (!file_exists($logDirectory)) {
             mkdir($logDirectory, self::$_defaultPermissions, true);
         }
@@ -386,25 +375,23 @@ class KLogger
 
         switch ($level) {
             case self::EMERG:
-                return "$time [EMERG] ";
+                return "$time [EMERG]";
             case self::ALERT:
-                return "$time [ALERT] ";
+                return "$time [ALERT]";
             case self::CRIT:
-                return "$time [CRIT] ";
-            case self::FATAL: # FATAL is an alias of CRIT
-                return "$time [FATAL] ";
-            case self::NOTICE:
-                return "$time [NOTICE] ";
+                return "$time [CRIT]";
+           case self::NOTICE:
+                return "$time [NOTICE]";
             case self::INFO:
-                return "$time [INFO] ";
+                return "$time [INFO]";
             case self::WARN:
-                return "$time [WARN] ";
+                return "$time [WARN]";
             case self::DEBUG:
-                return "$time [DEBUG] ";
+                return "$time [DEBUG]";
             case self::ERR:
-                return "$time [ERROR] ";
+                return "$time [ERROR]";
             default:
-                return "$time [LOG] ";
+                return "$time [LOG]";
         }
     }
 }
