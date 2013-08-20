@@ -1,14 +1,14 @@
 <?php
 /**
- * Finally, a light, permissions-checking logging class.
- *
- * Originally written for use with wpSearch
+ * !!! IMPORTANT !!! Turn this off in production. 
  *
  * Usage:
  * $log = new KLogger('/var/log/');
  * $log->logInfo('Returned a million search results'); //Prints to the log file
  * $log->logFatal('Oh dear.'); //Prints to the log file
  * $log->logDebug('x = 5'); //Prints nothing due to current severity threshhold
+ *
+ *
  *
  * @author  Kenny Katzgrau <katzgrau@gmail.com>, Alvin Jude <alvin@dartarrow.net>
  * @since   July 26, 2008 — Last update August 11, 2013
@@ -47,9 +47,9 @@ class KLogger
 
     # --------------- !!!THIS IS HOW YOU TURN IT OFF!!! ------------------------------ 
     private $_severityThreshold = self::DEBUG;
-    // private $_severityThreshold = self::OFF; // Turn it off
+    //private $_severityThreshold = self::OFF; // Turn it off
     # -------------------------------------------------------------------------------- 
-
+    
     /**
      * Internal status codes
      */
@@ -115,31 +115,32 @@ class KLogger
 
     /**
      * Partially implements the Singleton pattern. Each $logDirectory gets one
-     * instance.
+     * instance. This is because the original version allowed the user to pass in these params:
+     *  param string  $logDirectory File path to the logging directory
+     *  param integer $severity     One of the pre-defined severity constants     
+     * 
+     * But this version is hacked (Alvin) so that there is no user-defined instance that 
+     * can be passed, which means that the processing here is quite redundant. 
      *
-     * @param string  $logDirectory File path to the logging directory
-     * @param integer $severity     One of the pre-defined severity constants
+     * @TODO strip away the redundancy. The array thingy made this hard to implement. 
+     * @TODO test this with Windoze
+     * @TODO currently logs to $APP_HOME/libs/log. Change to $APP_HOME/log. AND make sure it runs on m$ window$
      * @return KLogger
      */
-    public static function instance($logDirectory = false, $severity = false)
+    public static function instance()
     {
-        if ($severity === false) {
-            $severity = self::$_defaultSeverity;
-        }
-        
-        if ($logDirectory === false) {
-            if (count(self::$instances) > 0) {
-                return current(self::$instances);
-            } else {
-                $logDirectory = dirname(__FILE__);
-            }
+
+        if (count(self::$instances) > 0) {
+            return current(self::$instances);
+        } else {
+            $logDirectory = dirname(__FILE__). DIRECTORY_SEPARATOR . 'log';
         }
 
         if (in_array($logDirectory, self::$instances)) {
             return self::$instances[$logDirectory];
         }
 
-        self::$instances[$logDirectory] = new self($logDirectory, $severity);
+        self::$instances[$logDirectory] = new self($logDirectory);
 
         return self::$instances[$logDirectory];
     }
@@ -170,12 +171,15 @@ class KLogger
             return;
         }
 
-        if (($this->_fileHandle = fopen($this->_logFilePath, 'a'))) {
-            $this->_logStatus = self::STATUS_LOG_OPEN;
-            $this->_messageQueue[] = $this->_messages['opensuccess'];
-        } else {
-            $this->_logStatus = self::STATUS_OPEN_FAILED;
-            $this->_messageQueue[] = $this->_messages['openfail'];
+        // if we have set this to OFF, then just forget this part
+        if($this->_severityThreshold != self::OFF){
+            if (($this->_fileHandle = fopen($this->_logFilePath, 'a'))) {
+                $this->_logStatus = self::STATUS_LOG_OPEN;
+                $this->_messageQueue[] = $this->_messages['opensuccess'];
+            } else {
+                $this->_logStatus = self::STATUS_OPEN_FAILED;
+                $this->_messageQueue[] = $this->_messages['openfail'];
+            }
         }
     }
 
